@@ -1,0 +1,75 @@
+---
+title: "classification"
+author: "Timothy Roy"
+date: '2023-04-17'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#Libraries
+library(skimr)
+```
+
+# Task 1.1 Data cleaning 
+
+## The first problem with the data is that the columns are not seperated 
+```{r }
+contract <- read.csv("labor-negotiations_students.csv")
+head(contract)
+```
+## By using ';' seperator, the values can be organized into different columns
+
+```{r}
+contract <- read.csv("labor-negotiations_students.csv",  sep = ";")
+head(contract)
+str(contract)
+```
+## Removing NA values
+```{r}
+test <- read.csv("labor-negotiations_students.csv",sep = ";")
+
+test[complete.cases(test),]
+str(test)
+```
+
+
+## Checking for unique values to find anomalies
+
+```{r}
+num_of_cols <- ncol(contract)
+print(paste("The number of columns in the df is ",num_of_cols ))
+
+
+```
+
+## Possible problem with 501?
+* 501 stands out here because. It has probably replaced 16 here
+* And 501 is missing after 500. 
+*Therefore, I will use my intuition and replace them 
+```{r}
+unique(contract$profession)
+```
+## Possible fix?
+
+```{r}
+contract$profession <- seq(1,600, by = 1)
+
+head(contract$profession, 20)
+contract[500:520,]$profession
+```
+
+
+```{r}
+unique(contract$duration)
+```
+
+## Removing NA values
+```{r}
+contract %>% skim()
+```
+
+
