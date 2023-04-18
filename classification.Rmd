@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 #Libraries
 library(skimr)
+library(dplyr)
 ```
 
 # Task 1.1 Data cleaning 
@@ -25,15 +26,23 @@ head(contract)
 
 ```{r}
 contract <- read.csv("labor-negotiations_students.csv",  sep = ";")
-head(contract)
+
 str(contract)
 ```
-## Removing NA values
-```{r}
-test <- read.csv("labor-negotiations_students.csv",sep = ";")
 
-test[complete.cases(test),]
-str(test)
+## Data Quality Issues
+* Not removing rows if a columns have NA values since we have a small data set
+* When using columns with NA values, all the NA values would be ignored
+* Wage1 has negative values (2.0-7.0)
+* Wage2 has value bigger than 7.0
+* Wage3 has negative value
+* Hours shouldn't be more than 40
+* Stable pay consists of negative values
+* Holidays should not contain more than 15 days
+
+
+```{r}
+contract %>% skim()
 ```
 
 
@@ -67,9 +76,126 @@ contract[500:520,]$profession
 unique(contract$duration)
 ```
 
-## Removing NA values
+## Problem: Negative Values
+* The description page shows that this columns can not contain negative values. Therefore all the negative values would be replaced by NA
+
 ```{r}
-contract %>% skim()
+unique(contract$wage1)
+```
+* Replacing negative values and values smaller than 2 or bigger than 7 with NA
+```{r}
+contract$wage1 <- replace(contract$wage1, contract$wage1 < 0, NA)
+contract$wage1 <- replace(contract$wage1, contract$wage1 < 2, NA)
+contract$wage1 <- replace(contract$wage1, contract$wage1 > 7, NA)
+contract$wage1
+```
+
+```{r}
+unique(contract$wage2)
+```
+
+* Replacing negative values and values smaller than 2 or bigger than 7 with NA
+
+```{r}
+contract$wage2 <- replace(contract$wage2, contract$wage2 < 0, NA)
+contract$wage2 <- replace(contract$wage2, contract$wage2 < 2, NA)
+contract$wage2 <- replace(contract$wage2, contract$wage2 > 7, NA)
+unique(contract$wage2)
+```
+
+```{r}
+unique(contract$wage3)
+```
+
+* Replacing negative values and values smaller than 2 or bigger than 7 with NA
+
+```{r}
+contract$wage3 <- replace(contract$wage3, contract$wage3 < 0, NA)
+contract$wage3 <- replace(contract$wage3, contract$wage3 < 2, NA)
+contract$wage3 <- replace(contract$wage3, contract$wage3 > 7, NA)
+unique(contract$wage3)
+```
+
+## Problem: Empty Values
+```{r}
+unique(contract$cola)
+```
+
+* Replacing all empty values with NA
+```{r}
+contract$cola <- na_if(contract$cola, "")
+unique(contract$cola)
+```
+
+## Problem: hours more than 40 hours should not be here
+```{r}
+unique(contract$hours)
+```
+
+* Replacing values more than 40 and less than 30 with NA
+
+```{r}
+contract$hours <- replace(contract$hours, contract$hours > 40, NA)
+contract$hours <- replace(contract$hours, contract$hours < 35, NA)
+
+unique(contract$hours)
+```
+
+## Problem: "self payed" doesn't exist in the definition 
+
+```{r}
+unique(contract$pension)
+```
+
+* Replacing them with NA and 'none'
+
+```{r}
+contract$pension <- na_if(contract$pension, "")
+contract$pension <- replace(contract$pension, contract$pension == "self payed", "none")
+unique(contract$pension)
+```
+
+## Problem: Negative Values!
+
+```{r}
+unique(contract$stby_pay)
+```
+
+```{r}
+contract$stby_pay <- replace(contract$stby_pay, contract$stby_pay < 2, NA)
+contract$stby_pay <- replace(contract$stby_pay, contract$stby_pay > 25, NA)
+contract$stby_pay <- replace(contract$stby_pay, contract$stby_pay < 0, NA)
+
+unique(contract$stby_pay)
+```
+
+## Problem: 0 values need to be repalced!
+```{r}
+unique(contract$shift_diff)
 ```
 
 
+```{r}
+contract$shift_diff <- replace(contract$shift_diff, contract$shift_diff == 0, NA)
+unique(contract$shift_diff)
+```
+
+## Problem: no maybe, replace empty values
+```{r}
+unique(contract$educ_allow)
+```
+
+```{r}
+contract$educ_allow <- replace(contract$educ_allow, contract$educ_allow == "maybe", NA)
+contract$educ_allow <- na_if(contract$educ_allow, "")
+unique(contract$educ_allow)
+```
+
+## Problem : out of bounds range
+```{r}
+unique(contract$holidays)
+```
+
+```{r}
+unique(contract$holidays)
+```
