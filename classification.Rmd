@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 #Libraries
 library(skimr)
 library(dplyr)
+library(utils)
 ```
 
 # Task 1.1 Data cleaning 
@@ -271,4 +272,39 @@ contract$Empl.hplan <- replace(contract$Empl.hplan, contract$Empl.hplan == ".5",
 
 unique(contract$Empl.hplan)
 ```
+
+```{r}
+unique(contract$consent)
+```
+
+```{r}
+contract$consent <- replace(contract$consent, contract$consent == "??", NA)
+
+unique(contract$consent)
+```
+
+## Look at the data one more time :)
+
+* All the out of ranges values have been removed
+* Standard deviation has decreased for hours, stable, pay and more!
+
+```{r}
+contract %>% skim()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
