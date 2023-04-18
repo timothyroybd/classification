@@ -20,6 +20,7 @@ library(dplyr)
 ## The first problem with the data is that the columns are not seperated 
 ```{r }
 contract <- read.csv("labor-negotiations_students.csv")
+
 head(contract)
 ```
 ## By using ';' seperator, the values can be organized into different columns
@@ -28,6 +29,10 @@ head(contract)
 contract <- read.csv("labor-negotiations_students.csv",  sep = ";")
 
 str(contract)
+```
+```{r}
+contract_backup<- read.csv("labor-negotiations_students.csv",  sep = ";")
+str(contract_backup)
 ```
 
 ## Data Quality Issues
@@ -197,5 +202,73 @@ unique(contract$holidays)
 ```
 
 ```{r}
+contract$holidays <- replace(contract$holidays, contract$holidays < 9, NA)
+contract$holidays <- replace(contract$holidays, contract$holidays > 15, NA)
 unique(contract$holidays)
 ```
+
+## Problems: values are not in the correct forms
+```{r}
+unique(contract$vacation)
+```
+
+```{r}
+contract$vacation <- replace(contract$vacation, contract$vacation == "below average", "ba")
+contract$vacation <- replace(contract$vacation, contract$vacation == "average", "avg")
+contract$vacation <- replace(contract$vacation, contract$vacation == "average", "gnr")
+contract$vacation <- na_if(contract$vacation, "")
+unique(contract$vacation)
+```
+
+
+```{r}
+unique(contract$lngtrm_disabil)
+```
+
+```{r}
+contract$lngtrm_disabil <- na_if(contract$lngtrm_disabil, "")
+unique(contract$lngtrm_disabil)
+```
+
+```{r}
+unique(contract$dntl_ins)
+```
+
+```{r}
+contract$dntl_ins <- na_if(contract$dntl_ins, "")
+unique(contract$dntl_ins)
+```
+
+```{r}
+unique(contract$breavement)
+```
+
+```{r}
+contract$breavement <- na_if(contract$breavement, "")
+contract$breavement <- replace(contract$breavement, contract$breavement == "maybe", NA)
+unique(contract$breavement)
+```
+
+```{r}
+unique(contract$Empl.hplan)
+```
+
+```{r}
+contract$Empl.hplan <- na_if(contract$Empl.hplan, "")
+contract$Empl.hplan <- replace(contract$Empl.hplan, contract$Empl.hplan == ".5", "half")
+contract$Empl.hplan <- replace(contract$Empl.hplan, contract$Empl.hplan == "none", NA)
+unique(contract$Empl.hplan)
+```
+
+```{r}
+contract$Empl.hplan <- contract_backup$Empl.hplan
+unique(contract$Empl.hplan)
+```
+
+```{r}
+contract$Empl.hplan <- na_if(contract$Empl.hplan, "")
+contract$Empl.hplan <- replace(contract$Empl.hplan, contract$Empl.hplan == ".5", "half")
+
+unique(contract$Empl.hplan)
+```
+
