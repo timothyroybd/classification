@@ -14,6 +14,12 @@ knitr::opts_chunk$set(echo = TRUE)
 library(skimr)
 library(dplyr)
 library(utils)
+library(caret)
+library(ggplot2)
+library(caret)
+library(lattice)
+library(Matrix)
+library(tidyr)
 ```
 
 # Task 1.1 Data cleaning 
@@ -291,8 +297,65 @@ unique(contract$consent)
 ```{r}
 contract %>% skim()
 ```
+```{r}
+# Remove the rows with missing values
+contract
+```
+```{r}
+str(contract)
+```
 
 
+```{r}
+contract$consent <- as.character(contract$consent)
+contract %>% drop_na(consent)
+str(contract$consent)
+```
+
+
+# Task 1.2 Classification
+
+
+```{r}
+# Convert the customer ID and contract status to factors
+
+#contract$profession <- as.factor(contract$profession )
+#$consent <- as.factor(contract$consent)
+# Split the data into training and testing sets
+set.seed(123)
+train_index <- sample(nrow(contract), 0.8 * nrow(contract))
+train_data <- contract[train_index, ]
+
+test_data <- contract[-train_index, ]
+
+#contract[train_index, ]
+#contract[-train_index, ]
+
+
+
+
+```
+
+```{r}
+sapply(lapply(contract, unique), length)
+```
+
+
+```{r}
+# Build a logistic regression model to predict the contract status
+model <- glm(consent ~ ., data = train_data, family = "binomial")
+```
+
+```{r}
+
+ 
+# Make predictions on the test data
+predictions <- predict(model, newdata = test_data, type = "response")
+predictions <- ifelse(predictions > 0.5, "good", "bad")
+ 
+# Evaluate the model performance
+confusionMatrix(predictions, test_data$consent)
+```
 
 
 
