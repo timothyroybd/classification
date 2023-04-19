@@ -20,6 +20,7 @@ library(caret)
 library(lattice)
 library(Matrix)
 library(tidyr)
+library(rpart)
 ```
 
 # Task 1.1 Data cleaning 
@@ -35,6 +36,7 @@ head(contract)
 ```{r}
 contract <- read.csv("labor-negotiations_students.csv",  sep = ";")
 
+head(contract)
 str(contract)
 ```
 ```{r}
@@ -57,6 +59,35 @@ str(contract_backup)
 contract %>% skim()
 ```
 
+## Possible problem with 501?
+* 501 stands out here because. It has probably replaced 16 here
+* And 501 is missing after 500. 
+*Therefore, I will use my intuition and replace them 
+
+```{r}
+contract$profession <- seq(1,600, by = 1)
+
+head(contract$profession, 20)
+contract[500:520,]$profession
+
+```
+
+
+## Removing columns with too many missing values
+
+```{r}
+contract <- subset(contract, select = -c(wage2,wage3,stby_pay,shift_diff, cola,pension,educ_allow, lngtrm_disabil,dntl_ins,breavement,Empl.hplan ))
+
+contract
+```
+
+
+```{r}
+contract <- na.omit(contract)
+str(contract)
+```
+
+
 
 ## Checking for unique values to find anomalies
 
@@ -67,140 +98,52 @@ print(paste("The number of columns in the df is ",num_of_cols ))
 
 ```
 
-## Possible problem with 501?
-* 501 stands out here because. It has probably replaced 16 here
-* And 501 is missing after 500. 
-*Therefore, I will use my intuition and replace them 
-```{r}
-unique(contract$profession)
-```
-## Possible fix?
-
-```{r}
-contract$profession <- seq(1,600, by = 1)
-
-head(contract$profession, 20)
-contract[500:520,]$profession
-```
-
 
 ```{r}
 unique(contract$duration)
 ```
 
 ## Problem: Negative Values
-* The description page shows that this columns can not contain negative values. Therefore all the negative values would be replaced by NA
+* The description page shows that this columns can not contain negative values. Wage inc can't be negatiev. Therefore assuming it was a mistake, the negative values would be converted to positive values
 
 ```{r}
 unique(contract$wage1)
+max(contract$wage1)
+min(abs(contract$wage1))
 ```
-* Replacing negative values and values smaller than 2 or bigger than 7 with NA
 ```{r}
-contract$wage1 <- replace(contract$wage1, contract$wage1 < 0, NA)
-contract$wage1 <- replace(contract$wage1, contract$wage1 < 2, NA)
-contract$wage1 <- replace(contract$wage1, contract$wage1 > 7, NA)
+contract$wage1 <- abs(contract$wage1)
+contract$wage1 <- ifelse(contract$wage1 > 1.5 & contract$wage1 < 2, 2, contract$wage1)
+contract$wage1 <- ifelse(contract$wage1 > 7 & contract$wage1 < 8, 7, contract$wage1)
 contract$wage1
 ```
 
-```{r}
-unique(contract$wage2)
-```
-
-* Replacing negative values and values smaller than 2 or bigger than 7 with NA
-
-```{r}
-contract$wage2 <- replace(contract$wage2, contract$wage2 < 0, NA)
-contract$wage2 <- replace(contract$wage2, contract$wage2 < 2, NA)
-contract$wage2 <- replace(contract$wage2, contract$wage2 > 7, NA)
-unique(contract$wage2)
-```
-
-```{r}
-unique(contract$wage3)
-```
-
-* Replacing negative values and values smaller than 2 or bigger than 7 with NA
-
-```{r}
-contract$wage3 <- replace(contract$wage3, contract$wage3 < 0, NA)
-contract$wage3 <- replace(contract$wage3, contract$wage3 < 2, NA)
-contract$wage3 <- replace(contract$wage3, contract$wage3 > 7, NA)
-unique(contract$wage3)
-```
-
-## Problem: Empty Values
-```{r}
-unique(contract$cola)
-```
-
-* Replacing all empty values with NA
-```{r}
-contract$cola <- na_if(contract$cola, "")
-unique(contract$cola)
-```
 
 ## Problem: hours more than 40 hours should not be here
 ```{r}
-unique(contract$hours)
+table(contract$hours)
+#contract$hours
 ```
 
 * Replacing values more than 40 and less than 30 with NA
 
 ```{r}
+
+contract$hours <- abs(contract$hours)
+contract$hours <- ifelse(contract$hours > 25 & contract$hours < 35, 35, contract$hours)
+contract$hours <- ifelse(contract$hours > 40 & contract$hours < 50, 40, contract$hours)
+
+
 contract$hours <- replace(contract$hours, contract$hours > 40, NA)
 contract$hours <- replace(contract$hours, contract$hours < 35, NA)
 
+table(contract$hours)
 unique(contract$hours)
 ```
 
-## Problem: "self payed" doesn't exist in the definition 
-
 ```{r}
-unique(contract$pension)
-```
-
-* Replacing them with NA and 'none'
-
-```{r}
-contract$pension <- na_if(contract$pension, "")
-contract$pension <- replace(contract$pension, contract$pension == "self payed", "none")
-unique(contract$pension)
-```
-
-## Problem: Negative Values!
-
-```{r}
-unique(contract$stby_pay)
-```
-
-```{r}
-contract$stby_pay <- replace(contract$stby_pay, contract$stby_pay < 2, NA)
-contract$stby_pay <- replace(contract$stby_pay, contract$stby_pay > 25, NA)
-contract$stby_pay <- replace(contract$stby_pay, contract$stby_pay < 0, NA)
-
-unique(contract$stby_pay)
-```
-
-## Problem: 0 values need to be repalced!
-```{r}
-unique(contract$shift_diff)
-```
-
-
-```{r}
-contract$shift_diff <- replace(contract$shift_diff, contract$shift_diff == 0, NA)
-unique(contract$shift_diff)
-```
-
-## Problem: no maybe, replace empty values
-```{r}
-unique(contract$educ_allow)
-```
-
-```{r}
-contract$educ_allow <- replace(contract$educ_allow, contract$educ_allow == "maybe", NA)
-contract$educ_allow <- na_if(contract$educ_allow, "")
-unique(contract$educ_allow)
+contract <- na.omit(contract)
+str(contract)
 ```
 
 ## Problem : out of bounds range
@@ -209,10 +152,22 @@ unique(contract$holidays)
 ```
 
 ```{r}
-contract$holidays <- replace(contract$holidays, contract$holidays < 9, NA)
+contract$holidays <- abs(contract$holidays)
+contract$holidays <- ifelse(contract$holidays > 5 & contract$holidays < 9, 9, contract$holidays)
+contract$holidays <- ifelse(contract$holidays > 15 & contract$holidays < 22, 15, contract$holidays)
+
+
 contract$holidays <- replace(contract$holidays, contract$holidays > 15, NA)
+contract$holidays <- replace(contract$holidays, contract$holidays < 9, NA)
+
 unique(contract$holidays)
 ```
+
+```{r}
+contract <- na.omit(contract)
+str(contract)
+```
+
 
 ## Problems: values are not in the correct forms
 ```{r}
@@ -227,68 +182,29 @@ contract$vacation <- na_if(contract$vacation, "")
 unique(contract$vacation)
 ```
 
-
 ```{r}
-unique(contract$lngtrm_disabil)
+contract <- na.omit(contract)
+str(contract)
 ```
 
-```{r}
-contract$lngtrm_disabil <- na_if(contract$lngtrm_disabil, "")
-unique(contract$lngtrm_disabil)
-```
 
-```{r}
-unique(contract$dntl_ins)
-```
-
-```{r}
-contract$dntl_ins <- na_if(contract$dntl_ins, "")
-unique(contract$dntl_ins)
-```
-
-```{r}
-unique(contract$breavement)
-```
-
-```{r}
-contract$breavement <- na_if(contract$breavement, "")
-contract$breavement <- replace(contract$breavement, contract$breavement == "maybe", NA)
-unique(contract$breavement)
-```
-
-```{r}
-unique(contract$Empl.hplan)
-```
-
-```{r}
-contract$Empl.hplan <- na_if(contract$Empl.hplan, "")
-contract$Empl.hplan <- replace(contract$Empl.hplan, contract$Empl.hplan == ".5", "half")
-contract$Empl.hplan <- replace(contract$Empl.hplan, contract$Empl.hplan == "none", NA)
-unique(contract$Empl.hplan)
-```
-
-```{r}
-contract$Empl.hplan <- contract_backup$Empl.hplan
-unique(contract$Empl.hplan)
-```
-
-```{r}
-contract$Empl.hplan <- na_if(contract$Empl.hplan, "")
-contract$Empl.hplan <- replace(contract$Empl.hplan, contract$Empl.hplan == ".5", "half")
-
-unique(contract$Empl.hplan)
-```
 
 ```{r}
 unique(contract$consent)
 ```
+
 
 ```{r}
 contract$consent <- replace(contract$consent, contract$consent == "??", NA)
 
 unique(contract$consent)
+
 ```
 
+```{r}
+contract <- na.omit(contract)
+str(contract)
+```
 ## Look at the data one more time :)
 
 * All the out of ranges values have been removed
@@ -297,21 +213,12 @@ unique(contract$consent)
 ```{r}
 contract %>% skim()
 ```
+
+
+
 ```{r}
-# Remove the rows with missing values
 contract
 ```
-```{r}
-str(contract)
-```
-
-
-```{r}
-contract$consent <- as.character(contract$consent)
-contract %>% drop_na(consent)
-str(contract$consent)
-```
-
 
 # Task 1.2 Classification
 
@@ -319,8 +226,8 @@ str(contract$consent)
 ```{r}
 # Convert the customer ID and contract status to factors
 
-#contract$profession <- as.factor(contract$profession )
-#$consent <- as.factor(contract$consent)
+contract$profession <- as.factor(contract$profession )
+contract$consent <- as.factor(contract$consent)
 # Split the data into training and testing sets
 set.seed(123)
 train_index <- sample(nrow(contract), 0.8 * nrow(contract))
@@ -337,7 +244,56 @@ test_data <- contract[-train_index, ]
 ```
 
 ```{r}
-sapply(lapply(contract, unique), length)
+train_data
+```
+
+```{r}
+model <- rpart(consent ~ ., data = train_data, method = "class")
+predictions <- predict(model, newdata = test_data, type = "class")
+# Evaluate the model performance
+confusionMatrix(predictions, test_data$consent)
+```
+```{r}
+predictions_num <- as.numeric(predictions)
+
+# Convert numeric predictions to "good" or "bad" based on threshold of 0.5
+predictions_threshold <- ifelse(predictions_num > 0.5, "good", "bad")
+
+# Evaluate the model performance
+confusionMatrix(predictions_threshold, test_data$consent)
+```
+
+
+
+```{r}
+set.seed(123)
+train_index <- sample(nrow(contract), 0.8 * nrow(contract))
+train_data <- contract[train_index, ]
+test_data <- contract[-train_index, ]
+
+# Ensure all factor variables have the same levels in both datasets
+for (col in names(train_data)) {
+  if (is.factor(train_data[[col]]) && is.factor(test_data[[col]])) {
+    levels_test <- levels(test_data[[col]])
+    levels_train <- levels(train_data[[col]])
+    if (!identical(levels_test, levels_train)) {
+      all_levels <- union(levels_test, levels_train)
+      train_data[[col]] <- factor(train_data[[col]], levels = all_levels)
+      test_data[[col]] <- factor(test_data[[col]], levels = all_levels)
+    }
+  }
+}
+
+model <- rpart(consent ~ ., data = train_data, method = "class")
+predictions <- predict(model, newdata = test_data, type = "class")
+
+# Convert predictions to factors with the same levels as test_data$consent
+predictions <- factor(predictions, levels = levels(test_data$consent))
+
+# Evaluate the model performance
+confusionMatrix(predictions, test_data$consent)
+
+
 ```
 
 
