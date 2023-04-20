@@ -21,6 +21,7 @@ library(lattice)
 library(Matrix)
 library(tidyr)
 library(rpart)
+library(lubridate)
 ```
 
 # Task 1.1 Data cleaning 
@@ -230,7 +231,8 @@ contract$profession <- as.factor(contract$profession )
 contract$consent <- as.factor(contract$consent)
 # Split the data into training and testing sets
 set.seed(123)
-train_index <- sample(nrow(contract), 0.8 * nrow(contract))
+train_index <- createDataPartition(contract$consent, p = 0.8, list = FALSE, times = 1)
+#train_index <- sample(nrow(contract), 0.8 * nrow(contract))
 train_data <- contract[train_index, ]
 
 test_data <- contract[-train_index, ]
@@ -248,78 +250,95 @@ train_data
 ```
 
 ```{r}
+plot(test_data$consent)
+```
+
+
+
+```{r}
 model <- rpart(consent ~ ., data = train_data, method = "class")
 predictions <- predict(model, newdata = test_data, type = "class")
 # Evaluate the model performance
-confusionMatrix(predictions, test_data$consent)
-```
-```{r}
-predictions_num <- as.numeric(predictions)
 
-# Convert numeric predictions to "good" or "bad" based on threshold of 0.5
-predictions_threshold <- ifelse(predictions_num > 0.5, "good", "bad")
-
-# Evaluate the model performance
-confusionMatrix(predictions_threshold, test_data$consent)
-```
-
-
-
-```{r}
-set.seed(123)
-train_index <- sample(nrow(contract), 0.8 * nrow(contract))
-train_data <- contract[train_index, ]
-test_data <- contract[-train_index, ]
-
-# Ensure all factor variables have the same levels in both datasets
-for (col in names(train_data)) {
-  if (is.factor(train_data[[col]]) && is.factor(test_data[[col]])) {
-    levels_test <- levels(test_data[[col]])
-    levels_train <- levels(train_data[[col]])
-    if (!identical(levels_test, levels_train)) {
-      all_levels <- union(levels_test, levels_train)
-      train_data[[col]] <- factor(train_data[[col]], levels = all_levels)
-      test_data[[col]] <- factor(test_data[[col]], levels = all_levels)
-    }
-  }
-}
-
-model <- rpart(consent ~ ., data = train_data, method = "class")
-predictions <- predict(model, newdata = test_data, type = "class")
-
-# Convert predictions to factors with the same levels as test_data$consent
-predictions <- factor(predictions, levels = levels(test_data$consent))
-
-# Evaluate the model performance
-confusionMatrix(predictions, test_data$consent)
-
-
-```
-
-
-```{r}
-# Build a logistic regression model to predict the contract status
-model <- glm(consent ~ ., data = train_data, family = "binomial")
-```
-
-```{r}
-
- 
-# Make predictions on the test data
-predictions <- predict(model, newdata = test_data, type = "response")
-predictions <- ifelse(predictions > 0.5, "good", "bad")
- 
-# Evaluate the model performance
+predictions
 confusionMatrix(predictions, test_data$consent)
 ```
 
 
+```{r}
+
+
+contract_matrix <- model.matrix(~ . - 1, data = contract)
+
+# Apply PCA to reduce dimensionality
+contract_pca <- prcomp(contract_matrix, scale. = TRUE)
+contract_pca_data <- contract_pca$x
+
+# Choose a classification algorithm, such as Random Forests
+library(randomForest)
+contract_rf <- randomForest(contract_matrix[, 1] ~ ., data = contract_pca_data)
+
+# Evaluate the model using cross-validation
+library(caret)
+contract_cv <- train(contract_matrix[, 1] ~ ., data = contract_pca_data, method = "rf", trControl = trainControl(method = "cv"))
+contract_cv$results
+```
+
+## Task 2: Classification: Prediction of Flight Delay
+
+```{r}
+#load data
+flight <- read.csv("flight_data.csv")
+weather <- read.csv("weather_data.csv")
+```
+
+
+```{r}
+#head(flight)
+weather
+```
+## Seperate time from date
+
+
+```{r}
+weather$date <- sapply(strsplit(weather$valid, " "), function(x) x[1])
+weather$date <- as.Date(weather$date, format = "%Y-%m-%d")
+head(weather$date)
+
+```
+```{r}
+weather
+```
+
+
+```{r}
+weather$time <- sapply(strsplit(weather$valid, " "), function(x)x[2])
+
+head(weather$time)
+class(weather$time)
+```
+```{r}
+weather$time_cel <- format(ceiling_date(as.POSIXct(weather$time, format="%H:%M"), unit = "hour"), "%H:%M")
+head(weather$time_cel)
+```
+
+```{r}
+class(weather$time_cel)
+```
+
+
+```{r}
+weather$key <- paste(weather$date, weather$station, df$col3, sep = "_")
+```
 
 
 
-
-
-
+```{r}
+flight
+```
+```{r}
+unique(flight$ORIGIN)
+```
 
 
 
